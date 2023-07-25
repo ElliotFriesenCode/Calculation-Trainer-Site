@@ -1,0 +1,801 @@
+
+<!DOCTYPE html>
+<head>
+<link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat&family=Pacifico&family=Roboto:wght@300&display=swap" rel="stylesheet">
+</head>
+<body id="main">
+ 
+    <script src="dist/bundle.js"></script>
+    <script src="./src/index.js"></script>
+    <div class="left" id="left">
+        <div class="chess-holder" id="chessHolder"></div>
+        <canvas class="chess-canvas"id="cc"></canvas>
+    </div>
+    <div class="right">
+        <div class="tree-holder" id="treeHolder"></div>
+       <canvas id="canvas"></canvas>
+       <div class="submit" id="submit">
+        <p class="submit-text">
+          Submit
+        </p>
+       </div>
+       <div class="scoreboardholder" id="scoreboard">
+       <div class="scoreboard">
+        <p class="scoreboard-text" id="scoreBoardText">
+          Score: 5
+        </p>
+      </div>
+      <div class="scoreboarddata">
+        <p class="scoreboarddatatext">New User Rating: XXX</p>
+        <p class="scoreboarddatatext">Puzzle Rating: XXX</p>
+        <p class="scoreboarddatatext">Rate this puzzle: XXX</p>
+      </div>
+       </div>
+       <!--<div class="header">
+        <p class="header-text">
+          Calculation Trainer
+        </p>
+       </div> -->
+    </div>
+</body>
+
+<script type="module">
+/*
+
+
+Main chessboard/move code
+
+
+*/
+
+    import { move, getPiece, chess, hist } from './src/index.js'
+    let fens = [];
+    let positions = [];
+    generateGrid();
+    function generateGrid(){
+        let holder = document.getElementById("chessHolder");
+        let white = true;
+        for(let i = 0; i < 64; i++){
+            if(i % 8 === 0){
+                white = !white;
+            }
+            let div = document.createElement("div");
+            if(white){
+                div.classList.add("square-white");
+            }
+            else{
+                div.classList.add("square-black");
+            }
+            
+            div.id = i;
+           div.addEventListener('click', function() {
+          setClickedId(i.toString()); //get id of square clicked
+          });
+            white = !white;
+            
+            holder.appendChild(div);
+           
+        }
+       
+        for(let i = 0; i < 64; i++){
+          positions.push([i, document.getElementById(i).offsetLeft, document.getElementById(i).offsetTop]);
+          
+        }
+        console.log(positions);
+        placePieces();
+    }
+  // Pushes position to 2D array
+ 
+  // Visually places each piece on the board
+  function placePieces(){ 
+  let x = 0;
+  for(let r = 0; r < 8; r++){
+    for(let c = 0; c < 8; c++){
+      if(chess.board()[r][c]){
+         let type = chess.board()[r][c].type;
+         let color = chess.board()[r][c].color;
+         let piece = '';
+      if(color === 'b'){
+        if(type === 'r'){
+          piece = 'brook';
+        }
+        else if(type === 'n'){
+          piece = 'bknight';
+        }
+        else if(type === 'b'){
+          piece = 'bbishop';
+        }
+        else if(type === 'q'){
+          piece = 'bqueen';
+        }
+        else if(type === 'k'){
+          piece = 'bking';
+        }
+        else if(type === 'p'){
+          piece = 'bpawn';
+        }
+      }
+      else{
+        if(type === 'r'){
+          piece = 'wrook';
+        }
+        else if(type === 'n'){
+          piece = 'wknight';
+        }
+        else if(type === 'b'){
+          piece = 'wbishop';
+        }
+        else if(type === 'q'){
+          piece = 'wqueen';
+        }
+        else if(type === 'k'){
+          piece = 'wking';
+        }
+        else if(type === 'p'){
+          piece = 'wpawn';
+        }
+      }
+       
+        let src = './pieces/' + piece + '.png';
+        let chess_piece = document.createElement("img");
+        chess_piece.src = src;
+        chess_piece.classList.add("piece");
+        chess_piece.id = "i" + String(x);
+         chess_piece.addEventListener("click", function(){
+          clickPiece(this.id);
+         })
+       
+      
+        document.getElementById(x).appendChild(chess_piece);
+      
+        console.log("h");
+         }
+         x++;
+            }
+        }
+        
+    }
+    let prevClickedIds = [];
+    let currMove = 0;
+    let clickedIds = [-1, -1];
+    function setClickedId(id){
+       if(clickedIds[0] === -1){
+       
+        clickedIds[0] = id;
+        
+        document.getElementById(id.toString()).classList.add("square-pressed");
+       }
+       else if(clickedIds[1] === -1){
+        clickedIds[1] = id;
+       // alert(clickedIds[0]);
+       // alert(clickedIds[1]);
+        document.getElementById(id.toString()).classList.add("square-pressed");
+       
+        try{
+        //  alert(getOffset(document.getElementById(clickedIds[0].toString())).top + " " + getOffset(document.getElementById(clickedIds[1].toString())).top);
+        //  draw(getOffset(document.getElementById(clickedIds[0].toString())).left, getOffset(document.getElementById(clickedIds[0].toString())).top, getOffset(document.getElementById(clickedIds[1].toString())).left, getOffset(document.getElementById(clickedIds[1].toString())).top)
+       console.log(getSquare(clickedIds[0]) + " " + getSquare(clickedIds[1]));
+        move(getSquare(clickedIds[0]), getSquare(clickedIds[1]));
+        
+        prevClickedIds.push([clickedIds[0], clickedIds[1], -1]);
+        updateArray(hist()[hist().length - 1], currMove);
+       
+        currMove++;
+        }
+        catch(err){
+alert(err);
+        }
+       }
+       else{
+     
+        document.getElementById(clickedIds[1].toString()).classList.remove("square-pressed");
+        document.getElementById(clickedIds[0].toString()).classList.remove("square-pressed");
+        clickedIds[1] = -1;
+        clickedIds[0] = id;
+        document.getElementById(id.toString()).classList.add("square-pressed");
+       }
+    }
+    function getOffset(el) {
+  const rect = el.getBoundingClientRect();
+  return {
+    left: rect.left + window.scrollX,
+    top: rect.top + window.scrollY
+  };
+}
+    /*
+    Use the distance formula to determine the square that is closest to the piece
+    */
+    
+    //Move a piece from one id to the new id based on positioning
+  /*  function movePiece(id, newId){
+      let piece = getPiece(getSquare(document.getElementById(id).parentNode.id));
+        if(piece === 'P'){
+          piece = '';
+        }
+        let str = piece + getSquare(newId);
+        try{
+          move(str);
+          positions[newId][3] = positions[document.getElementById(id).parentNode.id][3];
+          positions[document.getElementById(id).parentNode.id][3] = '';
+          document.getElementById(id).style.position = 'relative';
+          document.getElementById(id).style.left = "0px";
+          document.getElementById(id).style.top = "0px";
+          document.getElementById(newId).appendChild(document.getElementById(id));
+          updateArray(str);
+        }
+       catch(err){
+        //if not valid move
+        console.log(err);
+        document.getElementById(id).style.position = 'relative';
+        document.getElementById(id).style.left = "0px";
+        document.getElementById(id).style.top = "0px";
+        }
+    } 
+    */
+   
+    let clickedId = "";
+    let dragging = false;
+    
+   
+   
+    
+
+  
+  
+
+document.getElementById("submit").onclick = function(){
+  document.getElementById("submit").style.display = "none";
+ playMoves();
+}
+function replaceParent(child, newParent) {
+  var oldParent = child.parentNode; 
+  oldParent.replaceChild(newParent, child); 
+  newParent.appendChild(child); 
+}
+function submit(){
+  playMoves();
+}
+//Convert id to chess square id
+function getSquare(id){
+  let square = '';
+  if(id % 8 === 0){
+    square += 'a'
+  }
+  else if(id % 8 === 1){
+    square += 'b'
+  }
+  else if(id % 8 === 2){
+    square += 'c'
+  }
+  else if(id % 8 === 3){
+    square += 'd'
+  }
+  else if(id % 8 === 4){
+    square += 'e'
+  }
+  else if(id % 8 === 5){
+    square += 'f'
+  }
+  else if(id % 8 === 6){
+    square += 'g'
+  }
+  else if(id % 8 === 7){
+    square += 'h'
+  }
+
+  if(id < 8){
+    square += '8'
+  }
+  else if(id < 16){
+    square += '7'
+  }
+  else if(id < 24){
+    square += '6'
+  }
+  else if(id < 32){
+    square += '5'
+  }
+  else if(id < 40){
+    square += '4'
+  }
+  else if(id < 48){
+    square += '3'
+  }
+  else if(id < 56){
+    square += '2'
+  }
+  else if(id < 64){
+    square += '1'
+  }
+  return square;
+}
+/*
+
+
+The tree code
+
+
+*/
+/*
+This moves array is the basis of the tree
+A first line created such as e4 e5 f4 f5 will be stored in the first row of the array
+  with the ids 0, 1, 2, 3 respectively.
+If a new branch is created at move e5, such as e4 e5 g4 g5, the second row of the array
+  will be updated to have ids 0, 1, 4, 5 respectively.
+This allows us to save multiple lines of chess using move names and ids, same ids show sprouting from the same branch.
+*/
+let moves = [[['', -1, 0, 0, 0, 0, 0], ['', -1, 0, 0, 0, 0, 1], ['', -1, 0, 0, 0, 0, 0], ['', -1, 0, 0, 0, 0, 0], ['', -1, 0, 0, 0, 0, 0], ['', -1, 0, 0, 0, 0, 0], ['', -1, 0, 0, 0, 0, 0], ['', -1, 0, 0, 0, 0, 0], ['', -1, 0, 0, 0, 0, 0], ['', -1, 0, 0, 0, 0, 0]]]; //initializes the array to have maximum ten moves in a line
+let currId = 0; //current piece id in moves array
+let currRow = 0; //current row in moves array
+let currColumn = 0; //current column in moves array
+let maxRow = 0; 
+
+/*
+Once a move is made you must determine whether it creates a new branch, continues a line, or is repeated or not
+Then, based on these possibilities, update the moves array
+*/
+function updateArray(move, cM){
+  let cantMove = false;
+  let newBranch = false;
+   let index = 0;
+  let int = [];
+  for(let r = 0; r < moves.length; r++){
+    for(const square of moves[r]){
+      if(square[4] === currRow){
+        index = r; //calculate your current row as in order of branches (not the same necessarily as the row in the array)
+        int.push(index);
+      }
+    }
+  }
+  if(moves[index][currColumn + 1]){
+    
+    if(move !== moves[index][currColumn + 1][0]){
+     
+      if(moves[index][currColumn + 1][0] !== ''){
+      if(chess.turn() === 'w'){
+        newBranch = true;
+      maxRow++;
+      }
+      else{
+        chess.undo();
+        cantMove = true;
+      }
+     
+      }
+    }
+    else{
+     // currColumn++;
+      
+    }
+  }
+  if(!cantMove){
+  if(!newBranch){
+ 
+      if(moves.length === 1){
+      
+      
+      fens.push(chess.fen()); //save fen
+      moves[index][currColumn + 1] = [move, currId, 0, 0, currRow, currColumn + 1, 0]; //update moves column
+      prevClickedIds[cM][2] = currId;
+      currId++;
+      currColumn++;
+    // alert("e");
+      }
+      else{
+      fens.push(chess.fen());
+      moves[index][currColumn + 1] = [move, currId, 0, 0, currRow, currColumn + 1, 0];
+      prevClickedIds[cM][2] = currId;
+      currId++;
+      currColumn++;
+    //  alert(currColumn);
+      }
+  
+   
+  }
+  else{ 
+    //alert(currColumn);
+    fens.push(chess.fen());
+    moves.splice(index + 1, 0, []); //If new branch created new row in moves array
+    currColumn++;
+    let prev = index + 1;
+    //Here we are pushing a new row to the moves array which copies the original branch + the new move
+    for(let i = 0; i < currColumn; i++){
+      let x = [];
+      for(let z = 0; z < moves[index][i].length; z++){
+       x[z] = moves[index][i][z];
+      }
+      moves[index + 1].push(x);
+      moves[index + 1][i][4] = maxRow;
+      console.log(currRow);
+    }
+    currRow = maxRow;
+    moves[prev].push([move, currId, 0, 0, maxRow, currColumn, 0]);
+    
+    for(let i = currColumn + 1; i < moves[0].length; i++){
+      moves[prev].push(['', -1, 0, 0, maxRow, i, 0]);
+    }
+    prevClickedIds[cM][2] = currId;
+    currId++;
+  
+  }
+  console.log(moves);
+  prepareTree();
+ 
+      
+}
+}
+let correctMoves = [['Bxh7+', 'Kxh7', 'Ng5+', 'Kg8', 'Qh5'], 
+                    ['Bxh7+', 'Kxh7', 'Ng5+', 'Kg6', 'h4'],
+                    ['Bxh7+', 'Kxh7', 'Ng5+', 'Qxg5', 'Bxg5'],
+                    ['Bxh7+', 'Kh8', 'Ng5', 'Qxg5', 'Bxg5'],
+                    ['Bxh7+', 'Kh8', 'Ng5', 'Be7', 'h4'],
+                    
+                    ['Bxh7+', 'Kh8', 'Ng5', 'g6']];
+                  
+
+const delay = (delayInms) => {
+  return new Promise(resolve => setTimeout(resolve, delayInms));
+}
+let likePoses = [];
+const audioElement = new Audio("moveaudio.mp3");
+const point = new Audio("point2.wav");
+const scoreboard = new Audio("scoreboard.wav");
+const audioElement1 = new Audio("complete.mp3");
+async function playMoves(){
+ 
+  document.getElementById("main").click();
+  clearPieces();
+  chess.load('rnbq1rk1/pppn1ppp/4p3/3pP3/1b1P4/2NB1N2/PPP2PPP/R1BQK2R w KQq - 0 1');
+  placePieces();
+  for(let i = 0; i < moves.length; i++){
+    let rowRight = false;
+      for(let x = 1; x < moves[i].length; x++){
+        if(moves[i][x][0] !== ''){
+        let delayres = await delay(500);
+        clearPieces();
+        chess.move(moves[i][x][0]);
+        
+        placePieces();
+      
+
+        let right = false;
+        for(let r = 0; r < correctMoves.length; r++){
+         
+         if(moves[i][x][0] === correctMoves[r][x-1]){
+        
+          let rt = true;
+          for(let c = x; c > 0; c--){
+            if(moves[i][c][0] !== correctMoves[r][c - 1]){
+              rt = false;
+            }
+            if(c === 1 && rt){
+              right = true;
+           
+             
+            }
+         }
+
+        }
+      }
+     
+        if(right){
+          if(moves[i][x+1][0] === ''){
+            likePoses.push([moves[i][x + 1][2], moves[i][x+1][3]]);
+              rowRight = true;
+             
+             }
+          for(let r1 = 0; r1 < moves.length; r1++){
+           
+                if(moves[r1][x][3] === moves[i][x][3]){
+                  moves[r1][x][6] = 1;
+                }
+              
+            }
+           
+        }
+
+        else{
+          for(let r1 = 0; r1 < moves.length; r1++){
+           
+                if(moves[r1][x][3] === moves[i][x][3]){
+                  moves[r1][x][6] = 2;
+                
+              }
+              }
+        }
+        prepareTree();
+        audioElement.play();
+      }
+    }
+    if(rowRight){
+     
+    audioElement1.currentTime = 0;
+     audioElement1.play();
+    }
+      let delayres = await delay(1000);
+      
+      clearPieces();
+      chess.load('rnbq1rk1/pppn1ppp/4p3/3pP3/1b1P4/2NB1N2/PPP2PPP/R1BQK2R w KQq - 0 1');
+     // audioElement.play();
+      placePieces();
+     
+  }
+  let s = calculateScore();
+  showLikes(s);
+}
+async function showLikes(s){
+  for(let i = 0; i < likePoses.length; i++){
+    
+  let img = document.createElement('img');
+              img.src = "like.png";
+              img.classList.add("like");
+              img.style.position = "absolute";
+              img.style.left = likePoses[i][0] - 20 + "px";
+              img.style.top = likePoses[i][1] - 10 + "px";
+              document.getElementById("treeHolder").appendChild(img);
+              point.currentTime = 0;
+              point.preservesPitch = false;
+              point.playbackRate = i/5 + 1;
+              point.play();
+              let delayres = await delay(800);
+              
+  }
+              showScore(s);
+             
+}
+async function showScore(s){
+  scoreboard.currentTime = 0;
+ scoreboard.play();
+
+document.getElementById("scoreboard").style.display = "flex";
+document.getElementById("scoreBoardText").textContent = "Score: " + s;
+}
+function calculateScore(){
+  let score = 0;
+  for(let r = 0; r < moves.length; r++){
+    let right = true;
+    let halfright = false;
+    for(let c = 0; c < moves[r].length; c++){
+      if(moves[r][c][0] !== ''){
+        if(moves[r][c][6] === 2){
+          right = false;
+        }
+        if(moves[r][c][6] === 1){
+          halfright = true;
+        }
+      }
+    }
+    if(right){
+      score++;
+    }
+    if(halfright && !right){
+      score+=1/2;
+    }
+  }
+  return score;
+ // alert("Score: " + score);
+}
+//This function converts the data from being a simple list of the move array to a tree
+function prepareTree(){
+  //This initially lays out the array like a grid
+    let yoffset = window.innerHeight * .8 / 2 + 15;
+   let offset = moves.length * -40;
+   for(let r = 0; r < moves.length; r++){
+    for(let c = 0; c < moves[r].length; c++){
+        let x =  c * 110 - 140;
+        let y = yoffset + offset + r * 80;
+        moves[r][c][2] = x;
+        moves[r][c][3] = y;
+    }
+}
+/*
+
+Here we find moves that are similar and positioning them to be vertically in the middle of the first similar move and the last
+There are definitely more efficient ways to go about this, but as of now I am using this approach.
+*/
+
+//maybe r = 1;
+let poses = [];
+for(let r = 0; r < moves.length; r++){
+    for(let c = moves[r].length - 1; c > -1; c--){
+      if(moves[r][c][1]!== -1){
+        let divergeId = r;
+        for(let nr = r; nr > -1; nr--){
+            if(moves[r][c][1] !== moves[nr][c][1]){
+                break;
+            }
+            divergeId--;
+        }
+        let pos = (moves[divergeId + 1][c][3] + moves[r][c][3]) / 2;
+        poses.push([divergeId + 1, c, pos])
+        for(let nr = divergeId + 2; nr < r + 1; nr++){
+            moves[nr][c][3] = (moves[divergeId + 1][c][3] + moves[r][c][3]) / 2; 
+            pos = (moves[divergeId + 1][c][3] + moves[r][c][3]) / 2;  
+        }
+      }
+       
+    }
+  }
+  for(let i = 0; i < poses.length; i++){
+    moves[poses[i][0]][poses[i][1]][3] = poses[i][2];
+  }
+clearTree();
+loadTree();
+}
+//Erase the tree each time a move is made
+function clearTree(){
+  while (document.getElementById("treeHolder").firstChild) {
+    document.getElementById("treeHolder").removeChild(document.getElementById("treeHolder").firstChild);
+    }
+}
+//Load the tree based on the positioning
+function loadTree(){
+  var c1 = document.getElementById("canvas");
+  var ctx = c1.getContext("2d");
+  ctx.canvas.width= window.innerWidth * .8;
+  ctx.canvas.height= window.innerHeight * .8;
+
+    for(let r = 0; r < moves.length; r++){
+      let white = true;
+    for(let c = 0; c < moves[r].length; c++){
+         white = !white;
+      if(moves[r][c][0] !== ''){
+      let rowId = r;
+      let HighestRow = r;
+      //Check if this is most recent box, if yes then append it to html
+      for(let r1 = 0; r1 < moves.length; r1++){
+          if(moves[r1][c][4] > HighestRow && moves[r1][c][1] === moves[r][c][1]){
+            HighestRow = r1;
+            
+          }
+      }
+     if(HighestRow === r){ 
+       
+        let div = document.createElement('div');
+        if(!white){
+         
+         if(moves[r][c][6] === 0){
+          div.classList.add('grid-test');
+         }
+         else if(moves[r][c][6] === 1){
+          div.classList.add('grid-test-green');
+         }
+         else{
+          div.classList.add('grid-test-red');
+         }
+        }
+        else{
+         
+          if(moves[r][c][6] === 0){
+            div.classList.add('grid-test-white');
+         }
+         else if(moves[r][c][6] === 1){
+          div.classList.add('grid-test-white-green');
+         }
+         else{
+          div.classList.add('grid-test-white-red');
+         }
+        }
+       
+        div.addEventListener('click', loadFen, false);
+        div.curr = moves[r][c][1];
+        div.row = moves[r][c][4];
+        div.col =  moves[r][c][5];
+         let p = document.createElement('P');
+         let t = document.createTextNode(moves[r][c][0]);
+         p.appendChild(t);
+         div.appendChild(p);
+         div.style.left = "calc(" + moves[r][c][2] + "px)";
+         div.style.top = moves[r][c][3] + "px"
+        
+         document.getElementById("treeHolder").appendChild(div);
+     }
+         let xoffset = 53;
+         let yoffset = 15;
+    
+     
+if(c>0){
+  
+  //Draw lines connecting the boxes
+     ctx.beginPath();
+     ctx.moveTo(moves[r][c][2] - 5, moves[r][c][3] + yoffset);
+     
+     if(white){
+      ctx.moveTo(moves[r][c][2] - 5, moves[r][c][3] + yoffset);
+      ctx.lineTo(moves[r][c - 1][2] + xoffset, moves[r][c - 1][3] + yoffset);
+     }
+     else{
+     ctx.moveTo(moves[r][c][2] + 5, moves[r][c][3] + yoffset);
+     ctx.lineTo(moves[r][c - 1][2] + xoffset + 20, moves[r][c - 1][3] + yoffset);
+     }
+   
+     
+     if(moves[r][c][6] === 0){
+      ctx.strokeStyle = 'black';
+     } else if(moves[r][c][6] === 1){
+      ctx.strokeStyle = 'green';
+     } else if(moves[r][c][6] === 2){
+      ctx.strokeStyle = 'red';
+     }
+     ctx.lineWidth = 1;
+     ctx.closePath();
+     ctx.stroke();
+      }       
+      
+        
+       }
+      
+     } 
+    }
+
+  }
+  function draw(pos1x, pos1y, pos2x, pos2y){
+    let ctx1 = document.getElementById('cc').getContext('2d');
+ctx1.canvas.width = 1000;
+ctx1.canvas.height= 1000;
+ctx1.beginPath();
+ctx1.moveTo(pos1x, pos1y);
+ctx1.lineTo(pos2x, pos2y);
+ctx1.stroke();
+ctx1.closePath();
+  }
+//Load fen when a position is clicked
+  function loadFen(evt)
+  {
+   
+    for(let r = 0; r < prevClickedIds.length; r++){
+     
+      document.getElementById(prevClickedIds[r][0]).classList.remove("square-pressed");
+    document.getElementById(prevClickedIds[r][1]).classList.remove("square-pressed");
+      
+    }
+    console.log(hist());
+    let i = evt.currentTarget.curr
+    chess.load(fens[i]);
+    currRow = evt.currentTarget.row;
+    currColumn = evt.currentTarget.col;
+    console.log("prev");
+    console.log(prevClickedIds);
+   // clearPieces();
+   // placePieces();
+  /* let ids = [];
+   for(let c = currColumn; c > -1; c--){
+    ids.push(moves[currRow][c][1]);
+   }
+   for(let x = 0; x < ids.length; x++){
+    for(let r = 0; r < prevClickedIds.length; r++){
+      if(prevClickedIds[r][2] === x){
+      document.getElementById(prevClickedIds[r][0]).classList.add("square-pressed");
+    document.getElementById(prevClickedIds[r][1]).classList.add("square-pressed");
+      }
+    }
+  
+   } */
+    document.getElementById(clickedIds[0]).classList.remove("square-pressed");
+        document.getElementById(clickedIds[1]).classList.remove("square-pressed");
+    for(let r = 0; r < prevClickedIds.length; r++){
+      
+        if(prevClickedIds[r][2] === i){
+          document.getElementById(prevClickedIds[r][0]).classList.add("square-pressed");
+        document.getElementById(prevClickedIds[r][1]).classList.add("square-pressed");
+        clickedIds[0] = prevClickedIds[r][0];
+        clickedIds[1] = prevClickedIds[r][1];
+        }
+      
+    }
+    
+       
+     
+  }
+  //Delete all pieces
+function clearPieces(){
+  for(let i = 0; i < 64; i++){
+    if( document.getElementById("i" + i)){
+    document.getElementById("i" + i).remove();
+    }
+  }
+}
+</script>
